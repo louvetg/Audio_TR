@@ -12,14 +12,17 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
-
+#include <stdio.h>
+#include <errno.h>
 /*
 typedef char MY_TYPE;
 #define FORMAT RTAUDIO_SINT8
 */
 
+/*
 typedef signed short MY_TYPE;
 #define FORMAT RTAUDIO_SINT16
+*/
 
 /*
 typedef S24 MY_TYPE;
@@ -30,10 +33,11 @@ typedef signed long MY_TYPE;
 
 typedef float MY_TYPE;
 #define FORMAT RTAUDIO_FLOAT32
+*/
 
 typedef double MY_TYPE;
 #define FORMAT RTAUDIO_FLOAT64
-*/
+
 
 void usage( void ) {
   // Error function in case of incorrect command-line
@@ -63,6 +67,30 @@ int inout( void *outputBuffer, void *inputBuffer, unsigned int /*nBufferFrames*/
 int main( int argc, char *argv[] )
 {
   unsigned int channels, fs, bufferBytes, oDevice = 0, iDevice = 0, iOffset = 0, oOffset = 0;
+  FILE * fichier = NULL;
+  MY_TYPE* data_RI; //bug surement ici
+
+  //Ouverture du ficher rep imp à modifier
+  fichier =  fopen("/users/phelma/phelma2015/louvetg/TR_audio/ressources_tstr_v1_1/c/impres","rb");	
+  if(fichier == NULL) {
+     std::cerr << "Error File Opening\n";
+     exit( 1 );
+  }
+  
+
+  fseek(fichier,0,SEEK_END);
+  int length = ftell(fichier);  
+  rewind(fichier);
+  
+  printf("%d\n", length);
+
+  data_RI = (MY_TYPE *)malloc(length*sizeof(MY_TYPE));
+
+  if( data_RI == NULL ) { 
+    std::cerr << "Error allocating data_RI\n";
+    exit( 1 );
+  };
+
 
   // Minimal command-line checking
   if (argc < 3 || argc > 7 ) usage();
@@ -106,6 +134,23 @@ int main( int argc, char *argv[] )
   //options.flags |= RTAUDIO_NONINTERLEAVED;
 
   bufferBytes = bufferFrames * channels * sizeof( MY_TYPE );
+
+  //Reading RI file
+
+  int N_Data = fread(data_RI, sizeof( MY_TYPE ), length, fichier);
+  if(N_Data != length){
+    std::cerr << "Error in fread function\n";
+    exit( 1 );
+  }
+  
+  int i = 0 ;
+  for(i = 0; i < length; i++){
+    std::cout << "prout" << std::endl;
+    printf("%lf",data_RI[i]);
+  }
+  exit(1);  
+
+
   try {
     adac.openStream( &oParams, &iParams, FORMAT, fs, &bufferFrames, &inout, (void *)&bufferBytes, &options );
   }
