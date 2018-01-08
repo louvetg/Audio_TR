@@ -9,34 +9,13 @@
 /******************************************/
 
 #include "RtAudio.h"
+#include "reverb.h"
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
 #include <stdio.h>
 #include <errno.h>
-/*
-typedef char MY_TYPE;
-#define FORMAT RTAUDIO_SINT8
-*/
 
-/*
-typedef signed short MY_TYPE;
-#define FORMAT RTAUDIO_SINT16
-*/
-
-/*
-typedef S24 MY_TYPE;
-#define FORMAT RTAUDIO_SINT24
-
-typedef signed long MY_TYPE;
-#define FORMAT RTAUDIO_SINT32
-
-typedef float MY_TYPE;
-#define FORMAT RTAUDIO_FLOAT32
-*/
-
-typedef double MY_TYPE;
-#define FORMAT RTAUDIO_FLOAT64
 
 
 void usage( void ) {
@@ -82,9 +61,11 @@ int main( int argc, char *argv[] )
   int length = ftell(fichier);  
   rewind(fichier);
   
-  printf("%d\n", length);
+  printf("longueur du fichier :%d\n", length);
 
-  data_RI = (MY_TYPE *)malloc(length*sizeof(MY_TYPE));
+  data_RI = (MY_TYPE *)calloc(length,sizeof(MY_TYPE));
+  
+  // printf("taille allouée: %d soit %d mots de MY_TYPE\n", sizeof(data_RI[length - 1]) , sizeof(data_RI)/sizeof(MY_TYPE));
 
   if( data_RI == NULL ) { 
     std::cerr << "Error allocating data_RI\n";
@@ -132,27 +113,30 @@ int main( int argc, char *argv[] )
 
   RtAudio::StreamOptions options;
   //options.flags |= RTAUDIO_NONINTERLEAVED;
-
+  
+  pData data = malloc(sizeof(data));
+  data = NULL;
+    
   bufferBytes = bufferFrames * channels * sizeof( MY_TYPE );
-
+  
+  data -> bufferBytes = &bufferBytes;
   //Reading RI file
 
-  int N_Data = fread(data_RI, sizeof( MY_TYPE ), length, fichier);
-  if(N_Data != length){
+  int N_Data = fread(data_RI, 1, length, fichier);
+  if(N_Data != length ){
     std::cerr << "Error in fread function\n";
     exit( 1 );
   }
   
   int i = 0 ;
   for(i = 0; i < length; i++){
-    std::cout << "prout" << std::endl;
-    printf("%lf",data_RI[i]);
+    if(data_RI[i] != 0){/*printf("element num: %d egal %d \n",i,data_RI[i]);*/}
   }
-  exit(1);  
+ 
 
 
   try {
-    adac.openStream( &oParams, &iParams, FORMAT, fs, &bufferFrames, &inout, (void *)&bufferBytes, &options );
+    adac.openStream( &oParams, &iParams, FORMAT, fs, &bufferFrames, &inout, &bufferBytes, &options );
   }
   catch ( RtAudioError& e ) {
     std::cout << '\n' << e.getMessage() << '\n' << std::endl;

@@ -78,14 +78,14 @@ reverb.o: reverb.cpp /usr/include/stdc-predef.h ../RtAudio.h \
  /usr/include/c++/4.8.2/bits/basic_ios.tcc \
  /usr/include/c++/4.8.2/bits/ostream.tcc /usr/include/c++/4.8.2/istream \
  /usr/include/c++/4.8.2/bits/istream.tcc /usr/include/c++/4.8.2/sstream \
- /usr/include/c++/4.8.2/bits/sstream.tcc /usr/include/c++/4.8.2/cstdlib \
- /usr/include/stdlib.h /usr/include/bits/waitflags.h \
- /usr/include/bits/waitstatus.h /usr/include/sys/types.h \
- /usr/include/sys/select.h /usr/include/bits/select.h \
- /usr/include/bits/sigset.h /usr/include/sys/sysmacros.h \
- /usr/include/alloca.h /usr/include/bits/stdlib-float.h \
- /usr/include/c++/4.8.2/cstring /usr/include/string.h \
- /usr/include/libio.h /usr/include/_G_config.h \
+ /usr/include/c++/4.8.2/bits/sstream.tcc reverb.h \
+ /usr/include/c++/4.8.2/cstdlib /usr/include/stdlib.h \
+ /usr/include/bits/waitflags.h /usr/include/bits/waitstatus.h \
+ /usr/include/sys/types.h /usr/include/sys/select.h \
+ /usr/include/bits/select.h /usr/include/bits/sigset.h \
+ /usr/include/sys/sysmacros.h /usr/include/alloca.h \
+ /usr/include/bits/stdlib-float.h /usr/include/c++/4.8.2/cstring \
+ /usr/include/string.h /usr/include/libio.h /usr/include/_G_config.h \
  /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h \
  /usr/include/bits/stdio.h /usr/include/errno.h /usr/include/bits/errno.h \
  /usr/include/linux/errno.h /usr/include/asm/errno.h \
@@ -298,6 +298,8 @@ reverb.o: reverb.cpp /usr/include/stdc-predef.h ../RtAudio.h \
 /usr/include/c++/4.8.2/sstream:
 
 /usr/include/c++/4.8.2/bits/sstream.tcc:
+
+reverb.h:
 
 /usr/include/c++/4.8.2/cstdlib:
 
