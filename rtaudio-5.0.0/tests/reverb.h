@@ -11,10 +11,8 @@ typedef signed short MY_TYPE;
 /*
 typedef S24 MY_TYPE;
 #define FORMAT RTAUDIO_SINT24
-
 typedef signed long MY_TYPE;
 #define FORMAT RTAUDIO_SINT32
-
 typedef float MY_TYPE;
 #define FORMAT RTAUDIO_FLOAT32
 */
@@ -33,3 +31,6 @@ struct Data{
 typedef struct Data Data;
 
 typedef Data* pData;
+
+int Reverb(void *outputBuffer, void *inputBuffer, unsigned int /*nBufferFrames*/,
+	double /*streamTime*/, RtAudioStreamStatus status, void *data);
