@@ -14,7 +14,18 @@ input directly through to the output.
 #include <cstring>
 #include <stdio.h>
 #include <errno.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <math.h>
 
+double get_process_time() {
+    struct rusage usage;
+    if( 0 == getrusage(RUSAGE_SELF, &usage) ) {
+        return (double)(usage.ru_utime.tv_sec + usage.ru_stime.tv_sec) +
+               (double)(usage.ru_utime.tv_usec + usage.ru_stime.tv_usec) / 1.0e6;
+    }
+    return 0;
+}
 
 
 void usage(void) {
@@ -30,27 +41,12 @@ void usage(void) {
 	exit(0);
 }
 
-int inout(void *outputBuffer, void *inputBuffer, unsigned int /*nBufferFrames*/,
+int Reverb(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 	double /*streamTime*/, RtAudioStreamStatus status, void *data)
 {
 	// Since the number of input and output channels is equal, we can do
 	// a simple buffer copy operation here.
 	if (status) std::cout << "Stream over/underflow detected." << std::endl;
-
-	unsigned int *bytes = (unsigned int *) ((pData) data) -> bufferBytes ;
-	memcpy(outputBuffer, inputBuffer, *bytes);
-	return 0;
-}
-
-int Reverb(void *outputBuffer, void *inputBuffer, unsigned int /*nBufferFrames*/,
-	double /*streamTime*/, RtAudioStreamStatus status, void *data)
-{
-	// Since the number of input and output channels is equal, we can do
-	// a simple buffer copy operation here.
-	if (status) std::cout << "Stream over/underflow detected." << std::endl;
-
-	unsigned int *bytes = (unsigned int *)((pData)data)->bufferBytes;
-	//memcpy(outputBuffer, inputBuffer, *bytes);
 
 	/*	//initialisation de data
 	data = (pData)malloc(sizeof(pData));
@@ -61,25 +57,48 @@ int Reverb(void *outputBuffer, void *inputBuffer, unsigned int /*nBufferFrames*/
 	data->tmp = temp;*/
 	
 	int n;
-	int L_OA = *bytes;
-	int M = ((pData)data)->LengthRI;
-	MY_TYPE tmpt = 0;
+	int k;
+	int L_OA = nBufferFrames;
+
+	Data* pData = (Data*) data;  
+	
+	int M = pData->LengthRI;
+	double tmp = 0.0;
+	double* inBuf = (double*) inputBuffer;
+	double* outBuf = (double*) outputBuffer;
 	int kmin;
 	int kmax;
-	int k;
-	MY_TYPE* imp_left = ((pData)data)->RI;
-	MY_TYPE* bufferIn = (MY_TYPE*)inputBuffer;
-	MY_TYPE* bufferOut = (MY_TYPE*)outputBuffer;
-	MY_TYPE* temp = ((pData)data)->tmp;
 
+        double t1 = get_process_time();
+	
+	//for (k=0; k<512; k++) printf("%d %lf\n",k,inBuf[k]);
 
-
-	for (n = 1; n <= (L_OA + M - 1); n++){		tmpt = 0;				if (n >= M){ kmin = n - M + 1;}		else {kmin = 1;}				if (n < L_OA) {kmax = n; }		else { kmax = L_OA; }				for (k = kmin; k <= kmax; k++){
-			tmpt = tmpt + bufferIn[k]*imp_left[n - k + 1];
+	for (n = 0; n < (L_OA + M - 1); n++){
+		
+	tmp = 0;
+		
+		if (n > M){ kmin = n - M + 1;}
+		else {kmin = 0;}
+		
+		if (n < L_OA) {kmax = n - 1; }
+		else { kmax = L_OA - 1; }
+		
+		for (k = kmin; k <= kmax; k++){
+			printf("%d %lf\n",k,inBuf[k]);
+			tmp += inBuf[k] * pData->RI[n - k + 1];
+			
 		}
 		
-		if (n < L_OA){bufferOut[n] = tmpt + temp[n];  }
-		else{temp[n - L_OA] = tmpt;}	}	
+		if (n < M){
+			if(n < L_OA){outBuf[n] = tmp + pData->tmp[n];}
+			else{pData->tmp[n - L_OA] = tmp + pData->tmp[n];}
+		}
+		else{pData->tmp[n - L_OA] = tmp;}
+	}
+	
+	double t2 = get_process_time();
+	
+	printf("%lf\n", t2 - t1);
 
 	return 0;
 }
@@ -91,7 +110,7 @@ int main(int argc, char *argv[])
 	MY_TYPE* data_RI; //bug surement ici
 	MY_TYPE* temp;
 	//Ouverture du ficher rep imp à modifier
-	fichier = fopen("./ressources_tstr_v1_1/c/impres", "rb");
+	fichier = fopen("/users/phelma/phelma2015/louvetg/TR_audio/ressources_tstr_v1_1/c/impres", "rb");
 	if (fichier == NULL) {
 		std::cerr << "Error File Opening\n";
 		exit(1);
@@ -99,8 +118,10 @@ int main(int argc, char *argv[])
 
 
 	fseek(fichier, 0, SEEK_END);
-	int length = ftell(fichier);
+	int length_init = ftell(fichier);
 	rewind(fichier);
+	
+	int length = length_init / (8*4);	
 
 	printf("longueur du fichier :%d\n", length);
 
@@ -175,7 +196,7 @@ int main(int argc, char *argv[])
 	int i = 0;
 	for (i = 0; i < length; i++){
 		if (data_RI[i] != 0){
-		//printf("element num: %d egal %d \n",i,data_RI[i]);
+		printf("element num: %d egal %lf \n",i,data_RI[i]);
 		}
 	}
 
@@ -185,12 +206,12 @@ int main(int argc, char *argv[])
 	//initialisation de data
 	data = (pData)malloc(sizeof(pData));
 	data->bufferBytes = &bufferBytes;
-	data->LengthRI = length - 70000;
-	data->LengthTmp = length - 1 - 70000;
+	data->LengthRI = length;
+	data->LengthTmp = length - 1;
 	data->RI = (MY_TYPE*)malloc(length*sizeof(MY_TYPE));
 	data->tmp = temp;
 	
-
+	data->RI = data_RI;
 
 	try {
 		adac.openStream(&oParams, &iParams, FORMAT, fs, &bufferFrames, &Reverb, data, &options);
