@@ -25,12 +25,27 @@ struct Data{
 	int LengthTmp;
 	MY_TYPE* RI;
 	int LengthRI;
-	unsigned int* bufferBytes;
+
+	MY_TYPE* FFT_data_RI_x;
+	MY_TYPE* FFT_data_x;
+	int FFT_Length_pow2;
+	MY_TYPE* FFT_result;
+	MY_TYPE* FFT_tempon;
+
+	double LIM_release;
+	MY_TYPE LIM_e;
+	MY_TYPE LIM_gain;
+	double LIM_k;
+	double LIM_fa;
+	MY_TYPE LIM_liss;
 };
 
 typedef struct Data Data;
 
-typedef Data* pData;
 
 int Reverb(void *outputBuffer, void *inputBuffer, unsigned int /*nBufferFrames*/,
 	double /*streamTime*/, RtAudioStreamStatus status, void *data);
+
+void usage(void);
+
+Data* dataInit(Data* data, int length, MY_TYPE* tempon, MY_TYPE* data_RI, MY_TYPE* FFT_data_RI_x, MY_TYPE* FFT_data_x, int FFT_Length_pow2, MY_TYPE* FFT_result, MY_TYPE* FFT_tempon);
