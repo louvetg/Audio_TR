@@ -23,12 +23,12 @@ int limiter(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 
 	Data* pData = (Data*)data;
 		
-	double LIM_release = pData->LIM_release;
-	MY_TYPE LIM_e = pData->LIM_e;
-	MY_TYPE LIM_gain = pData->LIM_gain;
+	double LIM_release = pData->LIM_release; //facteur de release
+	MY_TYPE LIM_e = pData->LIM_e; //Enveloppe
+	MY_TYPE LIM_gain = pData->LIM_gain; //Gain instantanné 
 	double LIM_k = pData->LIM_k;
-	double LIM_fa = pData->LIM_fa;
-	MY_TYPE LIM_liss = pData->LIM_liss;
+	double LIM_fa = pData->LIM_fa;//facteur d'attaque
+	MY_TYPE LIM_liss = pData->LIM_liss;//Signal lissé de l'instant t - 1
 	
 	int L_Buff = nBufferFrames;
 	
@@ -52,7 +52,7 @@ int limiter(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 	}
 	
 	double t2 = get_process_time();
-	//printf("delta t = %lf\n", t2 - t1);
+	printf("delta t = %lf\n", t2 - t1);
 	
 	return 0;
 }
@@ -62,7 +62,7 @@ int fftReverb(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 
 	if (status) std::cout << "Stream over/underflow detected." << std::endl;
 
-	//D�clarations et initialisation
+	//Déclarations et initialisation
 	int n;
 	int k;
 
@@ -94,7 +94,7 @@ int fftReverb(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 
 	fftr(FFT_data_x, FFT_data_y, FFT_Length_pow2);
 	
-
+	//(a+ib)(c+id) = ac - bd + i(ad+cd) avec a+ib la RI et c+id la TF de l'entrée
 	for (n = 0; n < FFT_Length_pow2; n++){
 		FFT_result_x[n] = FFT_data_x[n] * FFT_data_RI_x[n] - FFT_data_y[n] * FFT_data_RI_y[n];
 		FFT_result_y[n] = FFT_data_x[n] * FFT_data_RI_y[n] + FFT_data_y[n] * FFT_data_RI_x[n];	
@@ -103,6 +103,8 @@ int fftReverb(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 	ifft(FFT_result_x, FFT_result_y, FFT_Length_pow2);
 		
 
+	//overlap add
+	//Attention cette écriture ne foncrionne que si L_RI est plus longue que L_Buff
 	for(n = 0; n < L_Buff + L_RI -1; n++) {
 		if (n < L_RI+1){
 			if (n < L_Buff){ 
@@ -125,7 +127,7 @@ int Reverb(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 	double /*streamTime*/, RtAudioStreamStatus status, void *data){
 	
 	
-	//D�clarations et initialisation
+	//Déclarations et initialisation
 	int n;
 	int k;
 	int kmin;
@@ -145,11 +147,11 @@ int Reverb(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 
 	double t1 = get_process_time();
 
-
-	//printf("inBuf=%lf",inBuf);
-	// Process
 	if (status) std::cout << "Stream over/underflow detected." << std::endl;
 
+	
+	//overlap add
+	//Attention cette écriture ne foncrionne que si L_RI est plus longue que L_Buff
 	
 	for (n = 0; n < (L_Buff + L_RI - 1); n++){
 
@@ -185,7 +187,6 @@ int Reverb(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
 
 int main(int argc, char *argv[])
 {
-	std::cout << "inBuf[i]" << ";" << "LIM_e" << ";" << "LIM_gain" << ";" << "LIM_liss" << ";" << "outBuf[i]" << "\n";
 	unsigned int channels, fs, oDevice = 0, iDevice = 0, iOffset = 0, oOffset = 0;
 	
 	// Minimal command-line checking
@@ -230,7 +231,7 @@ int main(int argc, char *argv[])
 	//options.flags |= RTAUDIO_NONINTERLEAVED;
 	
 
-	//D�claration et initialisation
+	//Déclaration et initialisation
 	int length = 0;
 	
 	MY_TYPE* data_RI;
@@ -242,7 +243,7 @@ int main(int argc, char *argv[])
 	MY_TYPE* FFT_result;
 	MY_TYPE* FFT_tempon;
 
-	FILE * fichier = fopen("/users/phelma/phelma2015/louvetg/TR_audio/ressources_tstr_v1_1/c/impres", "rb");
+	FILE * fichier = fopen("./impres", "rb");
 
 		
 	if (fichier == NULL) {
@@ -286,6 +287,7 @@ int main(int argc, char *argv[])
 	FFT_data_x = (MY_TYPE *)calloc(2 * FFT_Length_pow2, sizeof(MY_TYPE));
 	FFT_result = (MY_TYPE *)calloc(2 * FFT_Length_pow2, sizeof(MY_TYPE));
 
+	//FFT_tempon probablement beaucoup trop long, pourrait faire seulement la longueur de la RI 
 	FFT_tempon = (MY_TYPE *)calloc(2 * FFT_Length_pow2 - bufferFrames, sizeof(MY_TYPE));
 
 	if (FFT_data_RI_x == NULL || FFT_data_x == NULL || FFT_result == NULL) {
@@ -293,7 +295,6 @@ int main(int argc, char *argv[])
 		exit(1);
 	};
 
-	//memcpy(FFT_data_RI_x, data_RI, length*sizeof(MY_TYPE));
 	
 	for(int i = 0; i < length ; i++){FFT_data_RI_x[i]= data_RI[i];} 
 	
@@ -303,9 +304,11 @@ int main(int argc, char *argv[])
 	data = (Data*)malloc(sizeof(Data*));
 	data = dataInit(data, length, tempon, data_RI, FFT_data_RI_x, FFT_data_x, FFT_Length_pow2, FFT_result, FFT_tempon);
 
-
+	//Les fonctions Reverb, fftReverb et limiter sont disponibles
 	try {
-		adac.openStream(&oParams, &iParams, FORMAT, fs, &bufferFrames, &fftReverb, data, &options);
+		adac.openStream(&oParams, &iParams, FORMAT, fs, &bufferFrames, &Reverb, data, &options);
+		//adac.openStream(&oParams, &iParams, FORMAT, fs, &bufferFrames, &fftReverb, data, &options);
+		//adac.openStream(&oParams, &iParams, FORMAT, fs, &bufferFrames, &limiter, data, &options);
 	}
 	catch (RtAudioError& e) {
 		std::cout << '\n' << e.getMessage() << '\n' << std::endl;
